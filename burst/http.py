@@ -192,6 +192,10 @@ class Request():
       s.write(self.content)
     return s.getvalue()
 
+  def grep(self, pattern, only=False):
+    """grep the raw request, see help(grep)"""
+    grep(pattern, self, only=only)
+
   def __mul__(self, op):
     """Duplicate a request"""
     return RequestSet([self.copy() for i in range(op)])
@@ -584,6 +588,10 @@ class Response():
     if not headers_only and self.content:
       s.write(self.content)
     return s.getvalue()
+
+  def grep(self, pattern, only=False):
+    """grep the raw response, see help(grep)"""
+    grep(pattern, self, only=only)
 
   def raw(self):
     s = StringIO()

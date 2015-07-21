@@ -29,6 +29,8 @@ ru_forward_js = (lambda x: re_js_ext.search(x.path), "f")
 ru_forward_css = (lambda x: re_css_ext.search(x.path), "f")
 ru_bypass_ssl = (lambda x: x.method == "CONNECT", "b")
 
+re_grep_pattern = re.compile('g(?:rep)?((?: -o)?) +(.+)')
+
 class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
 
   protocol_version = "HTTP/1.1"
@@ -261,6 +263,12 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
           print  str(self.r)
         if e == "s":
           print self.r.repr()
+        if e == 'g' or e.startswith('g ') or e.startswith('grep '):
+          m = re_grep_pattern.match(e)
+          while not m or len(m.group(2)) == 0:
+            m = re_grep_pattern.match('g ' + raw_input('[-o ]<pattern>: ').strip())
+          only = m.group(1) and True
+          self.r.grep(m.group(2), only)
         if e == "h":
           print self.r.__str__(headers_only=True)
         if e == "e":
@@ -290,7 +298,7 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
         if self.r.method == "CONNECT":
           e = raw_input("[b]ypass, (l)ink, (d)rop, (c)ontinue, (v)iew, (h)eaders, (e)dit, (n)ext? ")
         else:
-          e = raw_input("[f]orward, (d)rop, (c)ontinue, (v)iew, (h)eaders, (e)dit, (de)code, (n)ext? ")
+          e = raw_input("[f]orward, (d)rop, (c)ontinue, (v)iew, (g)rep, (h)eaders, (e)dit, (de)code, (n)ext? [f] ")
       if self.server.verbose >= 2:
         print self.r
       ui_lock.release()
@@ -308,6 +316,12 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
             if e == "s":
               print self.r.repr()
               print self.r.response.repr()
+            if e == 'g' or e.startswith('g ') or e.startswith('grep '):
+              m = re_grep_pattern.match(e)
+              while not m or len(m.group(2)) == 0:
+                m = re_grep_pattern.match('g ' + raw_input('[-o ]<pattern>: ').strip())
+              only = m.group(1) and True
+              self.r.response.grep(m.group(2), only)
             if e == "h":
               print self.r.response.__str__(headers_only=True)
             if e == "e":
@@ -331,7 +345,7 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
               ui_lock.acquire()
               print self.pt, self.r.response.repr()
             flush_input()
-            e = raw_input("[f]orward, (d)rop, (c)ontinue, (v)iew, (h)eaders, (e)dit, (de)code, (n)ext? ")
+            e = raw_input("[f]orward, (d)rop, (c)ontinue, (v)iew, (g)rep, (h)eaders, (e)dit, (de)code, (n)ext? [f] ")
         else:
           print self.pt, repr(self.r.response)
         for al in self.server.alerter.analyse_response(self.r):
