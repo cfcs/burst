@@ -627,6 +627,8 @@ class Response():
         return c.value
 
   def filter(self, predicate):
+    """Filter the Request according to a predicate. This method is used by
+       RequestSet.filter"""
     return bool(predicate(self))
 
 def compare(r1, r2):
@@ -674,6 +676,7 @@ class RequestSet():
     return self.reqs.pop()
 
   def filter(self, predicate):
+    """Filter the `RequestSet` using a predicate callback for each `Request` in the set, returning a new `RequestSet` with the members for which the predicate is true (similar to the `filter()` builtin)."""
     return RequestSet([r for r in self.reqs if r.filter(predicate)])
 
   def extract(self, arg, from_response=None):
@@ -683,12 +686,15 @@ class RequestSet():
     return RequestSet([r.copy() for r in self.reqs])
 
   def cmp(self, i1, i2):
+    """Compares two requests by writing them to disk and launching conf.diff_editor in a shell"""
     compare(self[i1], self[i2])
 
   def cmp_response(self, i1, i2):
+    """Compares the responses to two requests by writing them to disk and launching conf.diff_editor in a shell"""
     compare(self[i1].response, self[i2].response)
 
   def diff(self, other, predicate):
+    """Returns a new RequestSet containing the requests for which predicate(self[n], other[n]) returns True. TODO: Should probably be renamed intersect()?"""
     if len(self) != len(other):
       raise BurstException("A RequestSet of the same size is required")
     return RequestSet([self[i] for i in range(len(self))
@@ -787,27 +793,34 @@ class RequestSet():
           print
 
   def responded(self):
+    """Returns a new RequestSet containing the elements that have received a response"""
     return self.filter(lambda x: x.response)
 
   def by_length(self):
+    """Returns a new RequestSet sorted by `req.response.length`"""
     return RequestSet(sorted(self.responded().reqs, key=operator.attrgetter("response.length")))
 
   def by_time(self):
+    """Returns a new RequestSet sorted by `req.response.time`"""
     return RequestSet(sorted(self.responded().reqs, key=operator.attrgetter("response.time")))
 
   def by_status(self):
+    """Returns a new RequestSet sorted by `req.response.status`"""
     return RequestSet(sorted(self.responded().reqs, key=operator.attrgetter("response.status")))
 
   def by_path(self):
+    """Returns a new RequestSet sorted by `req.path`"""
     return RequestSet(sorted(self.reqs, key=operator.attrgetter("path")))
 
   def without_payloads(self):
+    """Returns a new RequestSet containing the elements that do not have a payload"""
     return RequestSet([x for x in self.reqs if not hasattr(x, "payload")])
 
   def _init_connection(self):
     return connect(self.hostname, self.port, self.use_ssl)
 
   def clear(self):
+    """Delete all response objects from the requests in the RequestSet"""
     for r in self.reqs:
       r.response = None
 
@@ -918,6 +931,7 @@ class History(RequestSet):
     return RequestSet.__str__(self)
 
   def clear(self):
+    """Empties the request cache"""
     self.reqs = []
 
 history_lock = threading.RLock()
@@ -1050,6 +1064,7 @@ def _wrap_socket(sock):
     return ssl.wrap_socket(sock, ssl_version=conf._ssl_version)
 
 def _socks5_connect(hostname, port, use_ssl):
+  """Attempts to connect to hostname/port configured in `conf.proxy` as a SOCKS5 proxy and request a proxied connection to `hostname`:`port`, optionally attempting to wrap the resulting connection in a TLS context"""
   p_url = urlparse.urlparse(conf.proxy)
   p_hostname = p_url.hostname
   p_port = p_url.port
@@ -1083,6 +1098,7 @@ def _socks5_connect(hostname, port, use_ssl):
   return sock
 
 def _socks4_connect(hostname, port, use_ssl):
+  """See help(_socks5_connect), note that this is NOT SOCKS4A, meaning that the hostname must be resolvable using `socket.inet_aton()` for the connection to succeed"""
   p_url = urlparse.urlparse(conf.proxy)
   p_hostname = p_url.hostname
   p_port = p_url.port

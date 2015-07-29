@@ -43,7 +43,7 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
 
   def _bypass_ssl(self, hostname, port, proxy_aware=False):
     """
-    SSL bypass, behave like the requested server and provide a certificate.
+    SSL bypass (intercept/MitM), behave like the requested server and provide a certificate.
     """
     if proxy_aware:
       self.wfile.write("HTTP/1.1 200 Connection established\r\n\r\n") # yes, sure
@@ -81,6 +81,7 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
       ui_lock.release()
 
   def _forward_ssl(self, hostname, port):
+    """Transparently forward TLS connection when client sent a CONNECT method request"""
     client = self.request
     server = connect(hostname, port, False)
     self.wfile.write("HTTP/1.1 200 Connection established\r\n\r\n")
@@ -341,7 +342,7 @@ class ProxyHTTPRequestHandler(SocketServer.StreamRequestHandler):
                 print "no content to decode"
             if e == "n":
               ui_lock.release()
-              time.sleep(1)
+              time.sleep(1) # TODO what the fuck
               ui_lock.acquire()
               print self.pt, self.r.response.repr()
             flush_input()
@@ -415,6 +416,21 @@ def proxy(ip=None, port=None, rules=(ru_bypass_ssl, ru_forward_images,),
                      3      -- Display all requests and responses with their
                               full content
   See also: conf
+
+  Quick guide to interactive use:
+  (d)rop       drop the request/response
+  (c)ontinue   stop prompting interactively (set self.server.auto = True)
+  (v)iew       print the request/response object
+  (h)eaders    print the headers of the request/response object
+  (e)dit       edit the request/response in editor
+  (n)ext       wait 1 second, try to print the response (HOPING it was received)
+  [f]orward    forward the request/response to the server/client
+  (g)rep       print the request/response highlighted; see help(grep)
+  (de)code     print the decoded response object `.content`
+
+  CONNECT method only:
+    [b]ypass     intercept TLS (MitM); see help(ProxyHTTPRequestHandler._bypass_ssl)
+    (l)ink       transparently forward TLS; help(ProxyHTTPRequestHandler._forward_ssl)
   """
   if not ip: ip = conf.ip
   if not port: port = conf.port
