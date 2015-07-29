@@ -192,9 +192,9 @@ class Request():
       s.write(self.content)
     return s.getvalue()
 
-  def grep(self, pattern, only=False):
+  def grep(self, pattern, only=False, *args, **kwargs):
     """grep the raw request, see help(grep)"""
-    grep(pattern, self, only=only)
+    grep(pattern, str(self), only=only, *args, **kwargs)
 
   def __mul__(self, op):
     """Duplicate a request"""
@@ -589,9 +589,9 @@ class Response():
       s.write(self.content)
     return s.getvalue()
 
-  def grep(self, pattern, only=False):
+  def grep(self, pattern, only=False, *args, **kwargs):
     """grep the raw response, see help(grep)"""
-    grep(pattern, self, only=only)
+    grep(pattern, self, only=only, *args, **kwargs)
 
   def raw(self):
     s = StringIO()
@@ -645,10 +645,11 @@ def compare(r1, r2):
 cmp = compare
 
 class RequestSet():
-  """Set of request. This object behaves like a list.
+  """Set of Requests. This object behaves like a `list` (not a Python `set`).
   """
 
   def __init__(self, reqs=None):
+    """`reqs` MUST be a `list` of Request objects (passing a single Request will cause a crash later on)"""
     self.reqs = reqs if reqs else []
     self.hostname = None
 
@@ -678,6 +679,12 @@ class RequestSet():
   def filter(self, predicate):
     """Filter the `RequestSet` using a predicate callback for each `Request` in the set, returning a new `RequestSet` with the members for which the predicate is true (similar to the `filter()` builtin)."""
     return RequestSet([r for r in self.reqs if r.filter(predicate)])
+
+  def grep(self, pattern, only=True, *args, **kwargs):
+    """Print all Requests in the RequestSet highlighted using pattern.
+       For more information, see help(grep)
+      a.filter(lambda x: grep('o', x)) Returns a new RequestSet containing the requests that were matched"""
+    return self.filter(lambda r: 0 <> grep(pattern, r, only=only, return_count=True, *args, **kwargs))
 
   def extract(self, arg, from_response=None):
     return [r.extract(arg, from_response) for r in self.reqs]

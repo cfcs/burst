@@ -126,21 +126,28 @@ def external_view(args):
   subprocess.Popen(shlex.split(conf.external_viewer.format(fname)), preexec_fn=os.setpgrp)
   #todo: cleanup
 
-
-def grep(pattern, subject, only=False):
+def grep(pattern, subject, only=False, return_count=False):
   """Print the `subject` string with text matching the `pattern` colored bright red.
      If `only` is set to True, only text matching the `pattern` is printed.
+     If `return_count` is True, the number of matches will be returned.
      An alias with the syntax 'g [-o] <pattern> <subject>' is available in the console.
   """
+  try:
+    return subject.grep(pattern, only=only, return_count=False)
+  except AttributeError: pass
+  count = [0]
   if isinstance(pattern, basestring):
     pattern = re.compile(pattern, re.IGNORECASE | re.LOCALE | re.DOTALL)
   def _grep_replace(m):
+    count[0] += 1
     return color_bright_red(m.group(0))
   if only:
     for m in pattern.finditer(str(subject)):
       print _grep_replace(m)
   else:
     print pattern.sub(_grep_replace, str(subject))
+  if return_count:
+    return count[0]
 
 def play_notifier(message):
   if conf.play_notify:
